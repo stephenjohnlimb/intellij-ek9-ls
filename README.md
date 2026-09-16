@@ -21,13 +21,15 @@ preserves it.
 
 ## Build / run
 
-> **Gradle JVM must be JDK 21, not 25.** Gradle 8.13 (what IntelliJ uses by default) does **not** run
-> on JDK 25 — you'll get "JDK 25.0.2 isn't compatible with Gradle 8.13. Please fix JAVA_HOME". Point
-> Gradle at JDK 21: IntelliJ → Settings → Build, Execution, Deployment → Build Tools → Gradle →
-> **Gradle JVM → 21** (GraalVM 21). This overrides `JAVA_HOME` for Gradle only; your global JDK 25 for
-> the EK9 compiler is untouched. (CLI equivalent: run gradle with `JAVA_HOME` pointing at a JDK 21, or
-> add `gradle/gradle-daemon-jvm.properties` with `toolchainVersion=21`.) The plugin still targets/runs
-> against the chosen IntelliJ SDK regardless.
+> **Gradle 9.x is required** (pinned to 9.1.0 in `gradle/wrapper/gradle-wrapper.properties`). The
+> IntelliJ Platform Gradle Plugin 2.x needs Gradle **9.0+**, so IntelliJ's default `8.13` fails with
+> "Cannot use connection to Gradle distribution gradle-8.13". This is the wrapper's job — NOT an
+> IntelliJ-version problem, so **you do not need to update IntelliJ**. On first sync make sure
+> Settings → Build, Execution, Deployment → Build Tools → Gradle → **Use Gradle from: 'gradle-wrapper.properties'**.
+>
+> **JDK:** Gradle 9.1 supports JDK 25, so your default JDK 25 works (you may see a harmless "Kotlin
+> falls back to JVM 24 target" warning). If you'd rather silence that, set **Gradle JVM → 21**
+> (GraalVM 21) — either is fine; the plugin targets the chosen IntelliJ SDK regardless.
 
 ```bash
 cd ~/IdeaProjects/intellij-ek9-ls
