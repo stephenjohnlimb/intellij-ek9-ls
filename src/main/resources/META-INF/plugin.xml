@@ -1,0 +1,49 @@
+<idea-plugin>
+    <id>org.ek9lang.intellij.ek9</id>
+    <name>EK9</name>
+    <vendor email="stephenjohnlimb@gmail.com" url="https://ek9.io">Steve Limb</vendor>
+
+    <description><![CDATA[
+        EK9 language support for IntelliJ, built on LSP4IJ:
+        <ul>
+          <li><b>Language features</b> via the EK9 language server (<code>ek9 -ls</code>) &mdash;
+              diagnostics and hover.</li>
+          <li><b>Debugging</b> via the EK9 debug adapter (<code>ek9 -dap</code>, DAP) &mdash;
+              breakpoints in <code>.ek9</code> files, call stack, locals and stepping. The same
+              adapter that powers the VS Code extension.</li>
+        </ul>
+        Syntax colouring is provided by the EK9 TextMate bundle. Configure the Java command and the
+        EK9 compiler jar in Settings (see the EK9 settings), reusing the same jar as the language
+        server.
+    ]]></description>
+
+    <!-- The platform, plus LSP4IJ (which brings the LSP + DAP client this plugin registers into). -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.redhat.devtools.lsp4ij</depends>
+
+    <!-- LSP4IJ registrations -->
+    <extensions defaultExtensionNs="com.redhat.devtools.lsp4ij">
+        <!-- The EK9 language server: spawns `ek9 -ls`. -->
+        <server id="ek9LanguageServer"
+                name="EK9 Language Server"
+                factoryClass="org.ek9lang.intellij.lsp.Ek9LanguageServerFactory">
+            <description><![CDATA[The EK9 compiler running as a language server (ek9 -ls): diagnostics + hover.]]></description>
+        </server>
+        <!-- Pattern mapping (NOT a dedicated file type) so the existing EK9 TextMate colouring is preserved. -->
+        <fileNamePatternMapping patterns="*.ek9"
+                                serverId="ek9LanguageServer"
+                                languageId="ek9"/>
+
+        <!-- The EK9 debug adapter: spawns `ek9 -dap`. Enabled once Ek9DapDescriptorFactory is completed
+             against the LSP4IJ 0.20.1 DAP API (see README "DAP"). Until then, debugging is verified via
+             LSP4IJ's built-in "Debug Adapter Protocol" run configuration pointing at `ek9 -dap`.
+        <debugAdapterServer id="ek9DebugAdapter"
+                            name="EK9 Debug Adapter"
+                            factoryClass="org.ek9lang.intellij.dap.Ek9DapDescriptorFactory"/>
+        -->
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="org.ek9lang.intellij.Ek9Settings"/>
+    </extensions>
+</idea-plugin>
