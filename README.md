@@ -35,9 +35,13 @@ preserves it.
 
 ```bash
 cd ~/IdeaProjects/intellij-ek9-ls
-gradle wrapper            # once, to generate ./gradlew (or open the project in IntelliJ, which does it)
-./gradlew runIde         # launches a sandbox IntelliJ with the plugin loaded
+./gradlew buildPlugin     # produces build/distributions/intellij-ek9-ls-<version>.zip (install-from-disk)
+./gradlew runIde          # launches a sandbox IntelliJ with the plugin loaded
 ```
+
+The Gradle wrapper is committed, so `./gradlew` works on a fresh clone (it downloads Gradle 9.1.0 on
+first run). Remember the build JVM must be JDK 21 — if your default `java` is 25, pass it explicitly,
+e.g. `./gradlew -Dorg.gradle.java.home="$(/usr/libexec/java_home -v 21)" buildPlugin`.
 
 In the sandbox IDE, set the EK9 paths (until a Settings UI lands, edit the stored `ek9.xml`, or set
 them in `Ek9Settings` defaults): `javaCommand` (e.g. `/usr/bin/java`) and `compilerPath`
@@ -46,10 +50,24 @@ diagnostics/hover.
 
 ## Status
 
+- ✅ **Settings** — `Ek9Configurable` (Settings → Tools → **EK9**): Java command, EK9 compiler jar,
+  "use native" toggle, backed by `Ek9Settings`. Both `-ls` and `-dap` read these.
 - ✅ **LSP half** — `Ek9LanguageServerFactory` spawns `ek9 -ls`, mapped to `*.ek9` (colouring preserved). Builds and loads.
-- 🔲 **DAP half** — the `<debugAdapterServer>` registration is commented out in `plugin.xml` until
-  `Ek9DapDescriptorFactory` is completed against the LSP4IJ 0.20.1 DAP API. **First verify DAP works via
-  the manual run configuration below** (no plugin code needed), then wire the factory and re-enable.
+- ✅ **DAP — Route A proven (2026-09-16)** — `ek9 -dap` driven by LSP4IJ's **built-in "Debug Adapter
+  Protocol" run configuration** works in IntelliJ **Community**, with *zero plugin code*: breakpoint in
+  `s7demo.ek9` binds and hits, execution stops, the call stack shows the EK9 frame (`_main:17,
+  s7demo.ek9`) and Locals shows types + values (`base = {Integer} 21`, `label = "answer"`,
+  `doubled = {Integer} 121`). This is the VS Code experience, in IntelliJ Community. The two things that
+  gate it: the **Mappings** tab must declare `.ek9` debuggable (File type `ek9`, or File-name-pattern
+  `*.ek9`), and the breakpoint must be in the source that compiled into the **launched** jar.
+- ✅ **DAP half (plugin)** — `Ek9DapDescriptorFactory` + `Ek9DapDescriptor` are implemented against the
+  LSP4IJ 0.20.1 DAP API and the `<debugAdapterServer name="EK9">` registration is live in `plugin.xml`.
+  Compiles and assembles (`buildPlugin` green). Now a user picks **EK9** as the server in a "Debug
+  Adapter Protocol" run configuration and points at the program — the command line
+  (`java --add-modules jdk.jdi -jar … -dap`), the DAP `launch` body (`{"program": "${file}"}`) and the
+  `.ek9` breakpoint association (via `isDebuggableFile`) are all supplied by the descriptor, so none of
+  the three manual steps below are needed. Verify in a sandbox with `runIde` (see *Using the plugin's
+  EK9 server*).
 
 ## Verify DAP works (no plugin code — this is the key step)
 
@@ -70,43 +88,37 @@ directly, proving the whole path in IntelliJ Community before we bake it into th
 
 (Exact field names are in LSP4IJ's [DAP User Guide](https://github.com/redhat-developer/lsp4ij/blob/main/docs/dap/UserGuide.md).)
 
-If this works, Route A is confirmed and the plugin's job is just to register that configuration so
-users don't hand-craft it.
+This confirmed Route A (2026-09-16). The plugin now registers that configuration so users don't
+hand-craft it — see below.
 
-## Completing the DAP factory (Route A)
+## Using the plugin's EK9 server (Route A, implemented)
 
-Once verified, implement `org.ek9lang.intellij.dap.Ek9DapDescriptorFactory` and re-enable the
-`<debugAdapterServer>` in `plugin.xml`. Skeleton (verify signatures against LSP4IJ 0.20.1 —
-`com.redhat.devtools.lsp4ij.dap.*`):
+`Ek9DapDescriptorFactory` (`createDebugAdapterDescriptor` + `isDebuggableFile`) and `Ek9DapDescriptor`
+(`startServer` builds `ek9 -dap` from `Ek9Settings`; `getDapParameters` supplies `{"program": "${file}"}`;
+`isDebuggableFile`/`getFileType` associate `.ek9`) are implemented against LSP4IJ 0.20.1
+(`com.redhat.devtools.lsp4ij.dap.*`) and registered via `<debugAdapterServer name="EK9">` in plugin.xml.
 
-```kotlin
-package org.ek9lang.intellij.dap
+To use it in a sandbox IDE:
 
-// class Ek9DapDescriptorFactory : DebugAdapterDescriptorFactory() {
-//   override fun createDebugAdapterDescriptor(options, environment): DebugAdapterDescriptor =
-//     Ek9DapDescriptor(options, environment, serverDefinition)
-// }
-//
-// class Ek9DapDescriptor(...) : DebugAdapterDescriptor(...) {
-//   override fun startServer(): ProcessHandler {
-//     val s = Ek9Settings.getInstance()
-//     val cmd = GeneralCommandLine(s.javaCommand, "--add-modules", "jdk.jdi", "-jar", s.compilerPath, "-dap")
-//     return OSProcessHandler(cmd)
-//   }
-//   override fun getFileType(): FileType = /* the EK9 / TextMate file type, for breakpoint association */
-//   // getDapParameters(): the launch/attach body (program jar, cwd)
-//   // getServerReadyConfig(): the adapter speaks DAP over stdio immediately
-// }
-```
+1. `./gradlew runIde` (build JVM = JDK 21, see the build note above). Set the EK9 paths in `Ek9Settings`.
+2. Run → Edit Configurations → **+** → **Debug Adapter Protocol**.
+3. **Server** tab — select the registered **EK9** server (no command to type: `startServer()` supplies it).
+4. **Configuration** tab — set the program to the compiled jar, e.g.
+   `~/IdeaProjects/samples/debug-spike/.ek9/s7demo.jar`. (No Mappings tab and no launch JSON needed —
+   the descriptor supplies both.)
+5. Set a breakpoint in `s7demo.ek9` (line 18) and Debug. Expect the stop, the EK9 call stack and typed
+   locals — exactly as the manual config, now one-click.
 
-If LSP4IJ's DAP proves too limiting, the fallback is a native IntelliJ `PositionManager` (the route
-Kotlin/Scala/Groovy use) for the debug half; the LSP half stays on LSP4IJ regardless.
+If LSP4IJ's DAP ever proves too limiting, the fallback is a native IntelliJ `PositionManager` (the
+route Kotlin/Scala/Groovy use) for the debug half; the LSP half stays on LSP4IJ regardless.
 
 ## Layout
 
 ```
 build.gradle.kts / settings.gradle.kts / gradle.properties   IntelliJ Platform Gradle Plugin 2.16 + LSP4IJ 0.20.1
-src/main/resources/META-INF/plugin.xml                        depends lsp4ij; server + fileNamePatternMapping (+ debugAdapterServer, commented)
+src/main/resources/META-INF/plugin.xml                        depends lsp4ij; server + fileNamePatternMapping + debugAdapterServer
 src/main/kotlin/org/ek9lang/intellij/Ek9Settings.kt           java + compiler-jar paths
 src/main/kotlin/org/ek9lang/intellij/lsp/Ek9LanguageServerFactory.kt   spawns `ek9 -ls`
+src/main/kotlin/org/ek9lang/intellij/dap/Ek9DapDescriptorFactory.kt    registers the EK9 DAP server
+src/main/kotlin/org/ek9lang/intellij/dap/Ek9DapDescriptor.kt          spawns `ek9 -dap`; launch body + `.ek9` association
 ```

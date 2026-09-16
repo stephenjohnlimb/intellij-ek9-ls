@@ -11,8 +11,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
  * VS Code extension keeps as `ek9-ls.javaCommand` / `ek9-ls.compilerPath`. Both the LSP server
  * (`ek9 -ls`) and the debug adapter (`ek9 -dap`) are spawned from these.
  *
- * NOTE (follow-up): add a Settings UI (a `Configurable`) so these can be edited in-IDE. For now edit
- * them here or in the stored `ek9.xml`.
+ * Edited in-IDE via [Ek9Configurable] (Settings → Tools → EK9); persisted to `ek9.xml`.
  */
 @State(name = "Ek9Settings", storages = [Storage("ek9.xml")])
 class Ek9Settings : PersistentStateComponent<Ek9Settings> {

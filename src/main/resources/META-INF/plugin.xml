@@ -34,16 +34,21 @@
                                 serverId="ek9LanguageServer"
                                 languageId="ek9"/>
 
-        <!-- The EK9 debug adapter: spawns `ek9 -dap`. Enabled once Ek9DapDescriptorFactory is completed
-             against the LSP4IJ 0.20.1 DAP API (see README "DAP"). Until then, debugging is verified via
-             LSP4IJ's built-in "Debug Adapter Protocol" run configuration pointing at `ek9 -dap`.
+        <!-- The EK9 debug adapter: spawns `ek9 -dap` (the same adapter that powers VS Code). Registering
+             it makes "EK9" selectable as the server in a generic "Debug Adapter Protocol" run
+             configuration, with the command line, launch body and `.ek9` breakpoint association
+             pre-filled by Ek9DapDescriptorFactory / Ek9DapDescriptor. -->
         <debugAdapterServer id="ek9DebugAdapter"
-                            name="EK9 Debug Adapter"
+                            name="EK9"
                             factoryClass="org.ek9lang.intellij.dap.Ek9DapDescriptorFactory"/>
-        -->
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="org.ek9lang.intellij.Ek9Settings"/>
+        <!-- Settings → Tools → EK9: the Java command + compiler jar both `-ls` and `-dap` spawn from. -->
+        <applicationConfigurable parentId="tools"
+                                 id="org.ek9lang.intellij.Ek9Configurable"
+                                 instance="org.ek9lang.intellij.Ek9Configurable"
+                                 displayName="EK9"/>
     </extensions>
 </idea-plugin>

@@ -4,3 +4,5 @@ build/
 *.iml
 .kotlin/
 out/
+.intellijPlatform/
+.DS_Store
