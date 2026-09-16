@@ -27,9 +27,11 @@ preserves it.
 > IntelliJ-version problem, so **you do not need to update IntelliJ**. On first sync make sure
 > Settings → Build, Execution, Deployment → Build Tools → Gradle → **Use Gradle from: 'gradle-wrapper.properties'**.
 >
-> **JDK:** Gradle 9.1 supports JDK 25, so your default JDK 25 works (you may see a harmless "Kotlin
-> falls back to JVM 24 target" warning). If you'd rather silence that, set **Gradle JVM → 21**
-> (GraalVM 21) — either is fine; the plugin targets the chosen IntelliJ SDK regardless.
+> **Build JVM must be JDK 21.** Although Gradle 9.1 *runs* on JDK 25, the **Kotlin compiler** bundled
+> with the Kotlin Gradle plugin does not — it throws `IllegalArgumentException: 25.0.2` in
+> `JavaVersion.parse`. So set Settings → … → Gradle → **Gradle JVM → 21** (GraalVM 21). That runs
+> Gradle and the Kotlin daemon on JDK 21; your global JDK 25 (for the EK9 compiler) is untouched. The
+> plugin still targets the chosen IntelliJ SDK regardless of the build JVM.
 
 ```bash
 cd ~/IdeaProjects/intellij-ek9-ls
