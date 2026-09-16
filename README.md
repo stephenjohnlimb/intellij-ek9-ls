@@ -21,6 +21,14 @@ preserves it.
 
 ## Build / run
 
+> **Gradle JVM must be JDK 21, not 25.** Gradle 8.13 (what IntelliJ uses by default) does **not** run
+> on JDK 25 — you'll get "JDK 25.0.2 isn't compatible with Gradle 8.13. Please fix JAVA_HOME". Point
+> Gradle at JDK 21: IntelliJ → Settings → Build, Execution, Deployment → Build Tools → Gradle →
+> **Gradle JVM → 21** (GraalVM 21). This overrides `JAVA_HOME` for Gradle only; your global JDK 25 for
+> the EK9 compiler is untouched. (CLI equivalent: run gradle with `JAVA_HOME` pointing at a JDK 21, or
+> add `gradle/gradle-daemon-jvm.properties` with `toolchainVersion=21`.) The plugin still targets/runs
+> against the chosen IntelliJ SDK regardless.
+
 ```bash
 cd ~/IdeaProjects/intellij-ek9-ls
 gradle wrapper            # once, to generate ./gradlew (or open the project in IntelliJ, which does it)
