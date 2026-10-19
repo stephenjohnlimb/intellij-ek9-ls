@@ -108,6 +108,9 @@ To use it in a sandbox IDE:
    the descriptor supplies both.)
 5. Set a breakpoint in `s7demo.ek9` (line 18) and Debug. Expect the stop, the EK9 call stack and typed
    locals — exactly as the manual config, now one-click.
+6. Optional: to repeat a run's random draws (`SystemRandom`, `OS.random`), copy the seed the Debug Console
+   names (`random seed N - ...`) into the run configuration's launch JSON as `{"seed": N}`. The descriptor
+   lays that JSON over its own `program`/`cwd`, so any other launch attribute of `ek9 -dap` can go there too.
 
 If LSP4IJ's DAP ever proves too limiting, the fallback is a native IntelliJ `PositionManager` (the
 route Kotlin/Scala/Groovy use) for the debug half; the LSP half stays on LSP4IJ regardless.

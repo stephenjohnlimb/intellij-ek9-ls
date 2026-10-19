@@ -51,19 +51,22 @@ class Ek9DapDescriptor(
    * The DAP `launch` request body. `${'$'}{file}` is the program chosen in the run configuration's
    * Configuration tab (the compiled EK9 `.jar`); `${'$'}{workspaceFolder}` is its working directory.
    * Both are substituted by [LaunchUtils.getDapParameters].
+   *
+   * The run configuration's own launch JSON (its Parameters tab) is laid over that, so a person can
+   * give the adapter's other launch attributes - `"seed": 42` repeats a run's random draws exactly:
+   * each EK9 debug launch says its seed in the Debug Console, and that one repeats the run.
    */
   override fun getDapParameters(): MutableMap<String, Any> {
-    val launchJson = """
-      {
-        "type": "ek9",
-        "request": "launch",
-        "program": "${'$'}{file}",
-        "cwd": "${'$'}{workspaceFolder}"
-      }
-    """.trimIndent()
     val opts = options as DAPRunConfigurationOptions
     val context = LaunchUtils.LaunchContext(opts.file, opts.workingDirectory)
-    return LaunchUtils.getDapParameters(launchJson, context)
+    val parameters = LaunchUtils.getDapParameters(LAUNCH_TEMPLATE, context)
+    val own = opts.launchConfiguration
+    if (!own.isNullOrBlank()) {
+      LaunchUtils.getDapParameters(own, context)
+        .filterKeys { it != "type" && it != "request" }
+        .forEach { (name, value) -> parameters[name] = value }
+    }
+    return parameters
   }
 
   /** Breakpoints are valid in `.ek9` source — this replaces the manual Mappings-tab association. */
@@ -75,4 +78,15 @@ class Ek9DapDescriptor(
     FileTypeManager.getInstance().getFileTypeByExtension("ek9")
 
   override fun getServerName(): String = "EK9"
+
+  private companion object {
+    val LAUNCH_TEMPLATE = """
+      {
+        "type": "ek9",
+        "request": "launch",
+        "program": "${'$'}{file}",
+        "cwd": "${'$'}{workspaceFolder}"
+      }
+    """.trimIndent()
+  }
 }
